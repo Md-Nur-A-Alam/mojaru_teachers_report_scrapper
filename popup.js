@@ -160,7 +160,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     progressBox.style.display = 'block';
     btnScrape.disabled = true;
     btnScrape.style.opacity = '0.6';
-    scrapeLabel.textContent = 'Scraping...';
+    scrapeLabel.textContent = 'Clearing & Scraping...';
+
+    // Requirement: In every search, overall data should be cleared first
+    await QCStorage.clearAll();
 
     const allScraped = [];
 
@@ -192,11 +195,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     progressFill.style.width = '100%';
-    progressStatus.textContent = `Done! Merging ${allScraped.length} records...`;
+    progressStatus.textContent = `Done! Saving ${allScraped.length} fresh records...`;
 
     if (allScraped.length > 0) {
-      const res = await QCStorage.mergeScrapedRecords(allScraped);
-      progressStatus.textContent = `Success! Added: ${res.added}, Updated: ${res.updated}`;
+      await QCStorage.saveRecords(allScraped);
+      progressStatus.textContent = `Success! Saved ${allScraped.length} fresh classes.`;
     } else {
       progressStatus.textContent = 'No records found or session expired.';
     }

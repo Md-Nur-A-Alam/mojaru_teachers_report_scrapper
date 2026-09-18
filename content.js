@@ -178,6 +178,13 @@
     scrapeBtn.disabled = true;
     scrapeBtn.style.opacity = '0.6';
 
+    // Requirement: In every search, overall data should be clear first
+    if (typeof QCStorage !== 'undefined') {
+      await QCStorage.clearAll();
+    } else if (chrome.storage && chrome.storage.local) {
+      await new Promise(r => chrome.storage.local.set({ mojaru_qc_records: [] }, r));
+    }
+
     const allScraped = [];
 
     for (let i = 0; i < monthsList.length; i++) {
@@ -217,22 +224,11 @@
 
     // Save to storage
     if (typeof QCStorage !== 'undefined') {
-      const res = await QCStorage.mergeScrapedRecords(allScraped);
-      statusText.textContent = `Success! Added ${res.added} new, updated ${res.updated} classes.`;
+      await QCStorage.saveRecords(allScraped);
+      statusText.textContent = `Success! Saved ${allScraped.length} fresh classes.`;
     } else if (chrome.storage && chrome.storage.local) {
-      chrome.storage.local.get(['mojaru_qc_records'], (res) => {
-        const existing = res.mojaru_qc_records || [];
-        const map = new Map();
-        existing.forEach(r => map.set(r.id, r));
-        allScraped.forEach(r => {
-          if (!map.has(r.id) || (!map.get(r.id).is_edited && !map.get(r.id).is_manual)) {
-            map.set(r.id, r);
-          }
-        });
-        const finalArr = Array.from(map.values());
-        chrome.storage.local.set({ mojaru_qc_records: finalArr }, () => {
-          statusText.textContent = `Saved ${finalArr.length} classes to extension storage!`;
-        });
+      chrome.storage.local.set({ mojaru_qc_records: allScraped }, () => {
+        statusText.textContent = `Saved ${allScraped.length} fresh classes to extension storage!`;
       });
     }
 

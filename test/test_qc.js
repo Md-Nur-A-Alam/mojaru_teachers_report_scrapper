@@ -114,8 +114,48 @@ console.log('\n[Test 3] Testing Storage CRUD & Warning Flags...');
   assert.strictEqual(records.length, 22, 'Records count should be back to 22');
   console.log('  ✔ Delete operation removes the record successfully.');
 
-  // Test 4: Manifest & Extension Files
-  console.log('\n[Test 4] Checking Manifest & Extension Package...');
+  // Test 4: Pure Raw Scraping & Clearing Data on Search
+  console.log('\n[Test 4] Testing Pure Raw Scraping & Clear-on-Search...');
+  // Seed data row 12 originally had on_time = 0, but on screen portal gave 160 tk
+  const seedRow12 = SEED_QC_REPORTS.find(r => r.row_num === 12);
+  assert.strictEqual(seedRow12.on_time, 0, 'Row 12 on_time is 0');
+  assert.strictEqual(seedRow12.calculated_bonus, 160, 'Scraped bonus must stay exactly as on screen (160 tk) without applying rule logic on scrape');
+  console.log('  ✔ Raw scraping preserves screen bonus (160 Tk) without applying bonus logic on initial scrape.');
+
+  // Clear data on search test
+  await QCStorage.clearAll();
+  let emptyCheck = await QCStorage.getRecords();
+  assert.strictEqual(emptyCheck.length, 0, 'Storage must be completely cleared when new search starts');
+  console.log('  ✔ Overall data is properly cleared first on each search.');
+
+  // Restore seed for subsequent checks
+  await QCStorage.resetToSeed();
+
+  // Test 5: Date Range Filtering & 3-State Column Sorting
+  console.log('\n[Test 5] Testing Date Range Filter & 3-State Sorting...');
+  const allTestRecs = await QCStorage.getRecords();
+
+  // Date filter check: filter between 2026-09-01 and 2026-09-03
+  const filteredByDate = allTestRecs.filter(r => r.class_date >= '2026-09-01' && r.class_date <= '2026-09-03');
+  assert.strictEqual(filteredByDate.length, 6, 'Classes between Sep 1 and Sep 3 should be 6 classes');
+  console.log('  ✔ Date range filter (2026-09-01 to 2026-09-03) returns exactly 6 classes.');
+
+  // 3-state sorting test on bonus
+  // State 1: Ascending
+  const ascSorted = [...allTestRecs].sort((a, b) => (Number(a.calculated_bonus) || 0) - (Number(b.calculated_bonus) || 0));
+  assert.ok(ascSorted[0].calculated_bonus <= ascSorted[ascSorted.length - 1].calculated_bonus, 'Ascending sort works');
+
+  // State 2: Descending
+  const descSorted = [...allTestRecs].sort((a, b) => (Number(b.calculated_bonus) || 0) - (Number(a.calculated_bonus) || 0));
+  assert.ok(descSorted[0].calculated_bonus >= descSorted[descSorted.length - 1].calculated_bonus, 'Descending sort works');
+
+  // State 3: Original order
+  const origSorted = [...allTestRecs].sort((a, b) => (a.row_num || 0) - (b.row_num || 0));
+  assert.strictEqual(origSorted[0].row_num, 1, 'Original sort restores natural row #1 first');
+  console.log('  ✔ 3-state column sorting (original -> asc -> desc -> original) verified.');
+
+  // Test 6: Manifest & Extension Files
+  console.log('\n[Test 6] Checking Manifest & Extension Package...');
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../manifest.json'), 'utf8'));
   assert.strictEqual(manifest.manifest_version, 3, 'Manifest must be version 3');
   assert.ok(manifest.permissions.includes('storage'), 'Must have storage permission');

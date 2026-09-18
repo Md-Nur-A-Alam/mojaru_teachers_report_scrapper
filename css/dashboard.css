@@ -490,6 +490,52 @@ body {
   white-space: nowrap;
 }
 
+.qc-table th.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.qc-table th.sortable-th:hover {
+  color: var(--mojaru-teal-dark);
+  background: rgba(0, 191, 165, 0.08);
+}
+
+.qc-table th.sortable-th.sort-active {
+  color: var(--mojaru-teal-dark);
+  background: rgba(0, 191, 165, 0.12);
+}
+
+.sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 12px;
+  opacity: 0.45;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.sortable-th:hover .sort-icon,
+.sortable-th.sort-active .sort-icon {
+  opacity: 1;
+  font-weight: 900;
+}
+
+.date-input-filter {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+.date-input-filter:focus {
+  background: var(--bg-card);
+  border-radius: 4px;
+}
+
 .qc-table td {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border-subtle);

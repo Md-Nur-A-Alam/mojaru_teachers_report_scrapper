@@ -116,24 +116,12 @@ const QCParser = {
       // Cell 7: Total
       const totalScore = parseInt(cells[7].textContent.trim(), 10) || (onTime + cameraOn + classTest + attendances);
 
-      // Cell 8: Bonus (e.g. "0 Tk", "160 tk", "200 tk")
+      // Cell 8: Bonus (e.g. "0 Tk", "160 tk", "200 tk") - Exactly as on screen
       const bonusCell = cells[8] ? cells[8].textContent.trim() : '0 Tk';
       const portalBonus = bonusCell.replace(/\s+/g, ' ');
-
-      // Evaluate business rules
-      const evalResult = (typeof QCRules !== 'undefined')
-        ? QCRules.evaluateRow({
-            on_time: onTime,
-            camera_on: cameraOn,
-            class_test: classTest,
-            attendances: attendances,
-            portal_bonus: portalBonus
-          })
-        : {
-            expectedBonus: (onTime === 1 && totalScore >= 3) ? totalScore * 40 : 0,
-            hasDiscrepancy: false,
-            discrepancyNote: ''
-          };
+      const rawBonusNum = (typeof QCRules !== 'undefined')
+        ? QCRules.parseBonusAmount(portalBonus)
+        : (parseFloat(portalBonus.replace(/[^0-9.]/g, '')) || 0);
 
       const recordId = `qc_${rowMonth}_${finalBatch}_${dateISO}_${index + 1}`.replace(/[^a-zA-Z0-9_-]/g, '_');
 
@@ -141,6 +129,7 @@ const QCParser = {
         id: recordId,
         month: rowMonth,
         row_num: rowNum,
+        original_index: index + 1,
         course_name: finalCourse,
         batch_code: finalBatch,
         subject_name: finalSubject,
@@ -153,11 +142,14 @@ const QCParser = {
         attendances: attendances,
         total_score: totalScore,
         portal_bonus: portalBonus,
-        calculated_bonus: evalResult.expectedBonus,
-        has_discrepancy: evalResult.hasDiscrepancy,
-        discrepancy_note: evalResult.discrepancyNote,
+        calculated_bonus: rawBonusNum, // Pure raw data from screen as requested
+        has_discrepancy: false,
+        discrepancy_note: '',
         is_edited: false,
         is_manual: false,
+        edited_at: null,
+        created_at: new Date().toISOString()
+      });
         edited_at: null,
         created_at: new Date().toISOString()
       });

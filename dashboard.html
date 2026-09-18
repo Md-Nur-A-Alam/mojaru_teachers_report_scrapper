@@ -232,6 +232,14 @@
             <option value="">All Months</option>
           </select>
 
+          <!-- Specific Date Range Filter -->
+          <div class="date-filter-box" style="display: flex; align-items: center; gap: 6px; background: var(--bg-app); padding: 2px 8px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Date:</span>
+            <input type="date" id="filter-date-from" class="date-input-filter" title="Filter from specific date">
+            <span style="font-size: 11px; color: var(--text-muted);">&ndash;</span>
+            <input type="date" id="filter-date-to" class="date-input-filter" title="Filter to specific date">
+          </div>
+
           <select id="filter-batch" class="filter-select">
             <option value="">All Batches</option>
           </select>
@@ -261,15 +269,33 @@
         <table class="qc-table" id="qc-main-table">
           <thead>
             <tr>
-              <th style="width: 45px;">#</th>
-              <th>Course | Batch | Subject</th>
-              <th>Class Time & Date</th>
-              <th title="1 pt if present on time (Strict bonus requirement)">On time</th>
-              <th title="1 pt if camera on">Camera</th>
-              <th title="1 pt if performance given by 11:59 PM">Class Test</th>
-              <th title="1 pt if >=75%, 2 pt if >=85%">Attendance</th>
-              <th title="Total Score (On-time + Camera + Test + Attendance)">Total</th>
-              <th title="Calculated bonus based on policy vs raw portal">Bonus (Tk)</th>
+              <th style="width: 50px;" class="sortable-th" data-sort="row_num" title="Click to sort (Original -> Asc -> Desc)">
+                # <span class="sort-icon" id="sort-icon-row_num">⇅</span>
+              </th>
+              <th class="sortable-th" data-sort="course_batch_subject" title="Click to sort (Original -> Asc -> Desc)">
+                Course | Batch | Subject <span class="sort-icon" id="sort-icon-course_batch_subject">⇅</span>
+              </th>
+              <th class="sortable-th" data-sort="class_date" title="Click to sort by date (Original -> Asc -> Desc)">
+                Class Time &amp; Date <span class="sort-icon" id="sort-icon-class_date">⇅</span>
+              </th>
+              <th class="sortable-th" data-sort="on_time" title="Click to sort: 1 pt if on time (Original -> Asc -> Desc)">
+                On time <span class="sort-icon" id="sort-icon-on_time">⇅</span>
+              </th>
+              <th class="sortable-th" data-sort="camera_on" title="Click to sort: 1 pt if camera on (Original -> Asc -> Desc)">
+                Camera <span class="sort-icon" id="sort-icon-camera_on">⇅</span>
+              </th>
+              <th class="sortable-th" data-sort="class_test" title="Click to sort: 1 pt if test by 11:59PM (Original -> Asc -> Desc)">
+                Class Test <span class="sort-icon" id="sort-icon-class_test">⇅</span>
+              </th>
+              <th class="sortable-th" data-sort="attendances" title="Click to sort: 1 pt for 75%, 2 pt for 85% (Original -> Asc -> Desc)">
+                Attendance <span class="sort-icon" id="sort-icon-attendances">⇅</span>
+              </th>
+              <th class="sortable-th" data-sort="total_score" title="Click to sort by total points (Original -> Asc -> Desc)">
+                Total <span class="sort-icon" id="sort-icon-total_score">⇅</span>
+              </th>
+              <th class="sortable-th" data-sort="calculated_bonus" title="Click to sort by bonus amount (Original -> Asc -> Desc)">
+                Bonus (Tk) <span class="sort-icon" id="sort-icon-calculated_bonus">⇅</span>
+              </th>
               <th style="width: 110px; text-align: right;">Actions</th>
             </tr>
           </thead>

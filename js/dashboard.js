@@ -27,12 +27,18 @@
   // Filter Elements
   const filterSearch = document.getElementById('filter-search');
   const filterMonth = document.getElementById('filter-month');
+  const filterDateFrom = document.getElementById('filter-date-from');
+  const filterDateTo = document.getElementById('filter-date-to');
   const filterBatch = document.getElementById('filter-batch');
   const filterCourse = document.getElementById('filter-course');
   const filterBonusStatus = document.getElementById('filter-bonus-status');
   const filterModStatus = document.getElementById('filter-mod-status');
   const filterEditedBadge = document.getElementById('filter-edited-badge');
   const btnResetFilters = document.getElementById('btn-reset-filters');
+
+  // Sorting State: 3 states ('original' -> 'asc' -> 'desc' -> 'original')
+  let currentSortColumn = 'original';
+  let currentSortDirection = 'original';
 
   // Scraper Ribbon Elements
   const dashScrapeStart = document.getElementById('dash-scrape-start');
@@ -186,7 +192,14 @@
     const selBonusStatus = filterBonusStatus.value;
     const selModStatus = filterModStatus.value;
 
+    const dateFrom = filterDateFrom ? filterDateFrom.value : '';
+    const dateTo = filterDateTo ? filterDateTo.value : '';
+
     currentFiltered = allRecords.filter(r => {
+      // Specific Date Range Filter
+      if (dateFrom && r.class_date && r.class_date < dateFrom) return false;
+      if (dateTo && r.class_date && r.class_date > dateTo) return false;
+
       // Month
       if (selMonth && r.month !== selMonth) return false;
 
@@ -232,8 +245,72 @@
       return true;
     });
 
+    // 3-State Column Sorting ('original' -> 'asc' -> 'desc' -> 'original')
+    if (currentSortDirection === 'original') {
+      currentFiltered.sort((a, b) => (a.original_index || a.row_num || 0) - (b.original_index || b.row_num || 0));
+    } else {
+      const dir = currentSortDirection === 'asc' ? 1 : -1;
+      currentFiltered.sort((a, b) => {
+        let valA = a[currentSortColumn];
+        let valB = b[currentSortColumn];
+
+        if (currentSortColumn === 'course_batch_subject') {
+          valA = `${a.course_name || ''} ${a.batch_code || ''} ${a.subject_name || ''}`;
+          valB = `${b.course_name || ''} ${b.batch_code || ''} ${b.subject_name || ''}`;
+        } else if (currentSortColumn === 'calculated_bonus') {
+          valA = Number(a.calculated_bonus) || 0;
+          valB = Number(b.calculated_bonus) || 0;
+        }
+
+        if (valA === undefined || valA === null) valA = '';
+        if (valB === undefined || valB === null) valB = '';
+
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return (valA - valB) * dir;
+        }
+        return String(valA).localeCompare(String(valB), undefined, { numeric: true }) * dir;
+      });
+    }
+
     renderTable();
     updateKPIs();
+  }
+
+  // 3-State Column Sort Handler ('original' -> 'asc' -> 'desc' -> 'original')
+  function handleColumnSort(colKey) {
+    if (currentSortColumn === colKey) {
+      if (currentSortDirection === 'original') {
+        currentSortDirection = 'asc';
+      } else if (currentSortDirection === 'asc') {
+        currentSortDirection = 'desc';
+      } else {
+        currentSortDirection = 'original';
+      }
+    } else {
+      currentSortColumn = colKey;
+      currentSortDirection = 'asc';
+    }
+
+    updateSortHeaders();
+    applyFilters();
+  }
+
+  function updateSortHeaders() {
+    document.querySelectorAll('.sortable-th').forEach(th => {
+      const colKey = th.getAttribute('data-sort');
+      const icon = th.querySelector('.sort-icon');
+      if (colKey === currentSortColumn && currentSortDirection !== 'original') {
+        th.classList.add('sort-active');
+        if (icon) {
+          icon.textContent = currentSortDirection === 'asc' ? '↑' : '↓';
+        }
+      } else {
+        th.classList.remove('sort-active');
+        if (icon) {
+          icon.textContent = '⇅';
+        }
+      }
+    });
   }
 
   // Render Table Rows
@@ -415,13 +492,24 @@
 
   // Bind All Events
   function bindEvents() {
+
     // Search & Filters
     filterSearch.addEventListener('input', applyFilters);
     filterMonth.addEventListener('change', applyFilters);
+    if (filterDateFrom) filterDateFrom.addEventListener('change', applyFilters);
+    if (filterDateTo) filterDateTo.addEventListener('change', applyFilters);
     filterBatch.addEventListener('change', applyFilters);
     filterCourse.addEventListener('change', applyFilters);
     filterBonusStatus.addEventListener('change', applyFilters);
     filterModStatus.addEventListener('change', applyFilters);
+
+    // 3-State Column Sorting clicks
+    document.querySelectorAll('.sortable-th').forEach(th => {
+      th.addEventListener('click', () => {
+        const colKey = th.getAttribute('data-sort');
+        handleColumnSort(colKey);
+      });
+    });
 
     // Warning Badge Filter Toggle
     filterEditedBadge.addEventListener('click', () => {
@@ -438,13 +526,21 @@
     btnResetFilters.addEventListener('click', () => {
       filterSearch.value = '';
       filterMonth.value = '';
+      if (filterDateFrom) filterDateFrom.value = '';
+      if (filterDateTo) filterDateTo.value = '';
       filterBatch.value = '';
       filterCourse.value = '';
       filterBonusStatus.value = '';
       filterModStatus.value = '';
       filterEditedBadge.classList.remove('active-filter');
+
+      // Reset sort to original order
+      currentSortColumn = 'original';
+      currentSortDirection = 'original';
+      updateSortHeaders();
+
       applyFilters();
-      showToast('Filters reset');
+      showToast('Filters and sorting reset');
     });
 
     // Scraper Quick Ranges
@@ -476,6 +572,9 @@
 
       dashScraperProgress.style.display = 'block';
       dashBtnRunScrape.disabled = true;
+
+      // Requirement: In every search, the overall data should be clear first
+      await QCStorage.clearAll();
 
       const allScraped = [];
 
@@ -510,8 +609,8 @@
       dashProgressPercent.textContent = '100%';
 
       if (allScraped.length > 0) {
-        const res = await QCStorage.mergeScrapedRecords(allScraped);
-        showToast(`Scraped & saved! Added ${res.added} classes, updated ${res.updated}.`, 'teal');
+        await QCStorage.saveRecords(allScraped);
+        showToast(`Search completed! Saved ${allScraped.length} fresh classes.`, 'teal');
         await loadData();
       } else {
         showToast('No records fetched. Make sure you are logged into teacher.mojaru.com in this browser.', 'warning');

@@ -8,15 +8,16 @@ A dedicated Chrome Extension and analytics tool tailored for teachers at [Mojaru
 ## 🌟 Key Features
 
 ### 1. Automated Month-Range Scraper
-- **Seamless Session Integration**: Runs directly in Chrome while you are already logged in to `teacher.mojaru.com`. No need to re-enter passwords or bypass 2FA.
+- **Clean Slate on Search**: Every new scrape search clears previous data first, giving you a fresh, accurate snapshot of the requested period.
+- **Pure Raw Data Collection**: When scraping, the data is collected **purely as it appears on the Mojaru screen** (no artificial logic or bonus overrides applied during scraping).
 - **Custom Month Range**: Select **From Month** (e.g., `2026-06`) to **To Month** (e.g., `2026-09`) or use quick presets (**This Month**, **Past 3 Months**, **Past 6 Months**).
-- **Sequential Scraping**: Automatically selects each month, fetches reports, parses the table, and accumulates all data.
+- **Sequential Scraping**: Automatically selects each month, fetches reports, parses the table, and saves the fresh dataset.
 - **Two Easy Scraping Interfaces**:
   1. **Extension Popup**: Click the extension icon in your Chrome toolbar.
   2. **In-Page Floating Bar**: An unobtrusive floating widget directly on `teacher.mojaru.com/teacher/qc-report`.
 
-### 2. Business Logic & Bonus Engine
-Implements the exact Mojaru teacher evaluation policy:
+### 2. Business Logic Applied on Dashboard Edit / Creation
+When you edit a record on the dashboard (or create a manual entry), the strict Mojaru teacher evaluation policy is applied:
 - **On Time**: Present on time = `1 pt` (Strict prerequisite: if `0`, bonus is `0 Tk`).
 - **Camera On**: Teacher camera active = `1 pt`.
 - **Class Test**: Performance/test submitted by 11:59 PM = `1 pt`.
@@ -27,19 +28,20 @@ Implements the exact Mojaru teacher evaluation policy:
   - `40 Tk` per earned point.
   - **Penalty Condition 1**: If teacher was not present on time (`on_time === 0`), bonus is `0 Tk`.
   - **Penalty Condition 2**: If total score is less than 3 (`total < 3`), bonus is `0 Tk`.
-  - **Discrepancy Detection**: Highlights any mismatch between raw portal bonus and calculated policy bonus (e.g., special adjustments or overrides).
 
 ### 3. Interactive CRUD Dashboard
-- **Create**: Add a manual class entry with live score & bonus preview.
+- **Create**: Add a manual class entry with live score & bonus calculation.
 - **Read**: Rich table showing Course, Batch (`MOPP 60`, `MOPJ 35`, etc.), Subject, Class Time, Point Breakdown, Total Score, and Bonus.
-- **Update (Edit)**: Edit any field; stores original backup for one-click restoration.
+- **Update (Edit)**: Edit any field; automatically applies the bonus rules, updates points, and stores an original backup.
 - **Delete**: Remove unwanted records with confirmation.
-- **⚡ Warning Color Highlighting (Requested Feature)**:
+- **⚡ Warning Color Highlighting**:
   - Any edited row or manually created row is automatically styled with a **prominent amber warning background and border** (`[EDITED]` or `[MANUAL]` badge).
   - Click the **"Edited / Manual Rows"** badge filter to instantly isolate and review all modified entries.
   - One-click **"Restore Original"** button reverts any edited row back to its pristine scraped state.
 
-### 4. Filters, Search & Analytics
+### 4. 3-State Column Sorting & Date-Range Filtering
+- **3-State Column Sorting**: Click any table column header to cycle through **Original Order** $\rightarrow$ **Ascending** ($\uparrow$) $\rightarrow$ **Descending** ($\downarrow$) $\rightarrow$ **Original Order** ($\updownarrow$).
+- **Specific Date Range Filter**: In addition to month filtering, pick exact dates (**Date From** and **Date To**) to inspect classes in any customized date window.
 - **Summary KPIs**: Total Earned Bonus (Tk), Bonus Lost due to late/low points (Tk), On-Time Adherence %, Camera Adherence %, High-Attendance Rate %.
 - **Multi-Filter Toolbar**: Filter by Month, Batch, Course, Bonus Status (Paid, 0 Tk, Discrepancies), and Modification Status.
 - **Live Search**: Instant keyword filtering across batch, subject, date, or notes.
