@@ -1,34 +1,96 @@
 /**
  * Content script for teacher.mojaru.com
- * Injects floating helper and handles month-range scraping inside the active teacher session
+ * Automates real page-by-page browser navigation:
+ * selects month -> clicks Search -> extracts table -> advances to next month -> opens Dashboard!
  */
 
 (function () {
-  // Prevent duplicate injection
-  if (document.getElementById('mojaru-qc-floating-btn')) return;
+  const SESSION_KEY = 'mojaru_nav_scrape';
+  let isScrapingInProgress = false;
 
-  // Create floating button
-  const floatBtn = document.createElement('div');
-  floatBtn.id = 'mojaru-qc-floating-btn';
-  floatBtn.innerHTML = `
-    <svg viewBox="0 0 24 24">
-      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-    </svg>
-    <span>QC Scraper</span>
-  `;
-  document.body.appendChild(floatBtn);
-
-  // Panel
-  let panel = null;
-
-  floatBtn.addEventListener('click', () => {
-    if (panel) {
-      panel.remove();
-      panel = null;
-      return;
-    }
-    openPanel();
+  // Check if navigation scrape is in progress on page load
+  window.addEventListener('DOMContentLoaded', () => {
+    checkAndResumeNavigationScrape();
   });
+  // Also check immediately in case DOM is already loaded
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    checkAndResumeNavigationScrape();
+  }
+
+  // Dual Storage Helper: Syncs session in chrome.storage.local and sessionStorage
+  async function getScrapeSession() {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      try {
+        const res = await new Promise(r => chrome.storage.local.get(SESSION_KEY, r));
+        if (res && res[SESSION_KEY] && res[SESSION_KEY].active) {
+          return res[SESSION_KEY];
+        }
+      } catch (e) {}
+    }
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.active) return parsed;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  async function saveScrapeSession(session) {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      try {
+        await new Promise(r => chrome.storage.local.set({ [SESSION_KEY]: session }, r));
+      } catch (e) {}
+    }
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    } catch (e) {}
+  }
+
+  async function clearScrapeSession() {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      try {
+        await new Promise(r => chrome.storage.local.remove(SESSION_KEY, r));
+      } catch (e) {}
+    }
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch (e) {}
+  }
+
+  // Create floating button if on Mojaru portal
+  if (!document.getElementById('mojaru-qc-floating-btn')) {
+    const floatBtn = document.createElement('div');
+    floatBtn.id = 'mojaru-qc-floating-btn';
+    floatBtn.innerHTML = `
+      <svg viewBox="0 0 24 24">
+        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+      </svg>
+      <span>QC Scraper</span>
+    `;
+    document.body.appendChild(floatBtn);
+
+    let panel = null;
+    floatBtn.addEventListener('click', () => {
+      if (panel) {
+        panel.remove();
+        panel = null;
+        return;
+      }
+      panel = openPanel();
+    });
+  }
+
+  // Listen for message from Extension Popup to trigger page navigation scraper
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+      if (msg.type === 'START_PAGE_SCRAPE' && Array.isArray(msg.months)) {
+        startNavigationScrape(msg.months);
+        sendResponse({ success: true });
+      }
+    });
+  }
 
   function generateMonthsRange(startYearMonth, endYearMonth) {
     const [startYear, startMonth] = startYearMonth.split('-').map(Number);
@@ -62,14 +124,183 @@
     return result;
   }
 
+  function showTopBanner(text, showSpinner = true) {
+    let banner = document.getElementById('mojaru-qc-top-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'mojaru-qc-top-banner';
+      document.body.appendChild(banner);
+    }
+    banner.innerHTML = `
+      <div class="mojaru-banner-left">
+        ${showSpinner ? '<div class="mojaru-spinner"></div>' : '<span>✔</span>'}
+        <span>${text}</span>
+      </div>
+      <div style="font-size: 11px; opacity: 0.8;">Automated Mojaru QC Scraper</div>
+    `;
+  }
+
+  function removeTopBanner() {
+    const banner = document.getElementById('mojaru-qc-top-banner');
+    if (banner) banner.remove();
+  }
+
+  /**
+   * Resume scraping session across page reloads
+   */
+  async function checkAndResumeNavigationScrape() {
+    if (isScrapingInProgress) return;
+
+    const session = await getScrapeSession();
+    if (!session || !session.active || !Array.isArray(session.months)) {
+      return;
+    }
+
+    isScrapingInProgress = true;
+
+    try {
+      const { months, currentIndex } = session;
+      if (currentIndex >= months.length) {
+        // Completed all months in range
+        await finishScrapingSession(session);
+        return;
+      }
+
+      const currentTargetMonth = months[currentIndex];
+
+      // Check current URL to ensure the page has finished loading the target month
+      const urlParams = new URLSearchParams(window.location.search);
+      const currentUrlMonth = urlParams.get('month');
+
+      if (currentUrlMonth && currentUrlMonth !== currentTargetMonth) {
+        showTopBanner(`⚡ Redirecting to month: ${currentTargetMonth} (${currentIndex + 1}/${months.length})...`, true);
+        navigateMonthSearch(currentTargetMonth);
+        return;
+      }
+
+      showTopBanner(`⚡ Scraping Month: ${currentTargetMonth} (${currentIndex + 1}/${months.length}). Extracting classes...`, true);
+
+      // Wait for table to render rows
+      let tableRows = document.querySelectorAll('table tbody tr');
+      let waitAttempts = 0;
+      while (tableRows.length === 0 && waitAttempts < 8) {
+        await new Promise(r => setTimeout(r, 200));
+        tableRows = document.querySelectorAll('table tbody tr');
+        waitAttempts++;
+      }
+
+      // Parse records from the current DOM table
+      const records = (typeof QCParser !== 'undefined' && QCParser.parseFromDOM)
+        ? QCParser.parseFromDOM(document, currentTargetMonth)
+        : [];
+
+      session.collectedRecords.push(...records);
+      session.currentIndex++;
+
+      showTopBanner(`✔ Month ${currentTargetMonth}: Collected ${records.length} classes. Total so far: ${session.collectedRecords.length}`, true);
+
+      if (session.currentIndex < months.length) {
+        const nextMonth = months[session.currentIndex];
+        await saveScrapeSession(session);
+
+        await new Promise(r => setTimeout(r, 700));
+        showTopBanner(`Navigating to month ${nextMonth} (${session.currentIndex + 1}/${months.length})...`, true);
+
+        // Real URL navigation to the next month
+        navigateMonthSearch(nextMonth);
+      } else {
+        // Completed all months!
+        await finishScrapingSession(session);
+      }
+    } finally {
+      isScrapingInProgress = false;
+    }
+  }
+
+  /**
+   * Set month input and navigate to exact month URL
+   */
+  function navigateMonthSearch(monthStr) {
+    const monthInput = document.querySelector('input[type="month"][name="month"]');
+    if (monthInput) {
+      monthInput.value = monthStr;
+      monthInput.dispatchEvent(new Event('input', { bubbles: true }));
+      monthInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // Direct URL navigation: Mojaru server loads the exact month via GET query
+    window.location.href = `https://teacher.mojaru.com/teacher/qc-report?month=${monthStr}`;
+  }
+
+  /**
+   * Finish scraping session, save records, and open dashboard
+   */
+  async function finishScrapingSession(session) {
+    await clearScrapeSession();
+    showTopBanner(`🎉 Done! Collected ${session.collectedRecords.length} classes across ${session.months.length} months. Opening Dashboard...`, false);
+
+    // Save records to storage
+    if (typeof QCStorage !== 'undefined') {
+      await QCStorage.saveRecords(session.collectedRecords);
+    } else if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      await new Promise(resolve => {
+        chrome.storage.local.set({ mojaru_qc_records: session.collectedRecords }, resolve);
+      });
+    }
+
+    setTimeout(() => {
+      removeTopBanner();
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ type: 'OPEN_DASHBOARD' });
+      } else {
+        window.open(chrome.runtime.getURL('dashboard.html'), '_blank');
+      }
+    }, 1600);
+  }
+
+  /**
+   * Start a brand new scraping session
+   */
+  async function startNavigationScrape(monthsList) {
+    if (!monthsList || monthsList.length === 0) return;
+
+    // Requirement: In every search, the overall data should be clear first
+    if (typeof QCStorage !== 'undefined') {
+      await QCStorage.clearAll();
+    } else if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      await new Promise(r => chrome.storage.local.set({ mojaru_qc_records: [] }, r));
+    }
+
+    const firstMonth = monthsList[0];
+    const session = {
+      active: true,
+      months: monthsList,
+      currentIndex: 0,
+      collectedRecords: []
+    };
+
+    await saveScrapeSession(session);
+
+    // Check if current page is already qc-report with firstMonth
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentUrlMonth = urlParams.get('month');
+
+    if (currentUrlMonth === firstMonth && window.location.pathname.includes('qc-report')) {
+      // Immediately process current month
+      checkAndResumeNavigationScrape();
+    } else {
+      showTopBanner(`Navigating to first month ${firstMonth}...`, true);
+      navigateMonthSearch(firstMonth);
+    }
+  }
+
   function openPanel() {
-    panel = document.createElement('div');
+    const panel = document.createElement('div');
     panel.id = 'mojaru-qc-panel';
 
     const now = new Date();
     const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    // Try to get month from page if on qc-report
     const pageMonthInput = document.querySelector('input[type="month"][name="month"]');
     const selectedMonth = pageMonthInput ? pageMonthInput.value : currentYM;
 
@@ -82,7 +313,7 @@
       </div>
       <div class="mojaru-panel-body">
         <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
-          Active session detected! Scrape single or multiple months directly.
+          Automatically changes month &rarr; clicks Search &rarr; collects classes &rarr; repeats!
         </div>
 
         <div style="margin-bottom: 12px;">
@@ -113,13 +344,6 @@
             📊 Open Analytics Dashboard
           </button>
         </div>
-
-        <div class="mojaru-progress-box" id="mojaru-progress-box" style="display: none;">
-          <div id="mojaru-progress-status" style="font-size: 11px; font-weight: 600; color: #0f766e;">Starting scraper...</div>
-          <div class="mojaru-progress-bar">
-            <div class="mojaru-progress-fill" id="mojaru-progress-fill"></div>
-          </div>
-        </div>
       </div>
     `;
 
@@ -127,11 +351,14 @@
 
     document.getElementById('mojaru-close-btn').addEventListener('click', () => {
       panel.remove();
-      panel = null;
     });
 
     document.getElementById('mojaru-open-dash-btn').addEventListener('click', () => {
-      chrome.runtime.sendMessage({ type: 'OPEN_DASHBOARD' });
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ type: 'OPEN_DASHBOARD' });
+      } else {
+        window.open(chrome.runtime.getURL('dashboard.html'), '_blank');
+      }
     });
 
     document.getElementById('btn-quick-1').addEventListener('click', () => {
@@ -164,80 +391,10 @@
         ? generateMonthsRange(startM, endM)
         : generateMonthsRange(endM, startM);
 
-      await runScrape(months);
+      panel.remove();
+      startNavigationScrape(months);
     });
-  }
 
-  async function runScrape(monthsList) {
-    const progressBox = document.getElementById('mojaru-progress-box');
-    const statusText = document.getElementById('mojaru-progress-status');
-    const fill = document.getElementById('mojaru-progress-fill');
-    const scrapeBtn = document.getElementById('mojaru-start-scrape-btn');
-
-    progressBox.style.display = 'block';
-    scrapeBtn.disabled = true;
-    scrapeBtn.style.opacity = '0.6';
-
-    // Requirement: In every search, overall data should be clear first
-    if (typeof QCStorage !== 'undefined') {
-      await QCStorage.clearAll();
-    } else if (chrome.storage && chrome.storage.local) {
-      await new Promise(r => chrome.storage.local.set({ mojaru_qc_records: [] }, r));
-    }
-
-    const allScraped = [];
-
-    for (let i = 0; i < monthsList.length; i++) {
-      const m = monthsList[i];
-      const pct = Math.round(((i) / monthsList.length) * 100);
-      fill.style.width = `${pct}%`;
-      statusText.textContent = `Scraping month ${m} (${i + 1}/${monthsList.length})...`;
-
-      try {
-        // If current page is already the target month, parse directly from current DOM
-        const pageMonthInput = document.querySelector('input[type="month"][name="month"]');
-        let records = [];
-
-        if (pageMonthInput && pageMonthInput.value === m && window.location.pathname.includes('qc-report')) {
-          records = QCParser.parseFromDOM(document, m);
-        } else {
-          // Fetch via active session
-          const resp = await fetch(`https://teacher.mojaru.com/teacher/qc-report?month=${m}`, {
-            credentials: 'include'
-          });
-          const html = await resp.text();
-          records = QCParser.parseHTML(html, m);
-        }
-
-        allScraped.push(...records);
-        statusText.textContent = `Month ${m}: Scraped ${records.length} classes`;
-        // Subtle delay to be gentle on server
-        await new Promise(r => setTimeout(r, 600));
-      } catch (err) {
-        console.error(`Failed scraping month ${m}:`, err);
-        statusText.textContent = `Error scraping month ${m}: ${err.message}`;
-      }
-    }
-
-    fill.style.width = '100%';
-    statusText.textContent = `Done! Scraped ${allScraped.length} total classes. Saving...`;
-
-    // Save to storage
-    if (typeof QCStorage !== 'undefined') {
-      await QCStorage.saveRecords(allScraped);
-      statusText.textContent = `Success! Saved ${allScraped.length} fresh classes.`;
-    } else if (chrome.storage && chrome.storage.local) {
-      chrome.storage.local.set({ mojaru_qc_records: allScraped }, () => {
-        statusText.textContent = `Saved ${allScraped.length} fresh classes to extension storage!`;
-      });
-    }
-
-    scrapeBtn.disabled = false;
-    scrapeBtn.style.opacity = '1';
-    scrapeBtn.textContent = '✔ Scraping Complete!';
-
-    setTimeout(() => {
-      scrapeBtn.textContent = '▶ Start Scraping Range';
-    }, 4000);
+    return panel;
   }
 })();

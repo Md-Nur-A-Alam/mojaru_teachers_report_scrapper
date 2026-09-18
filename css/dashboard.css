@@ -250,11 +250,11 @@ body {
   background: var(--mojaru-teal);
 }
 
+.metric-card.card-total-payout::before { background: #10b981; }
+.metric-card.card-base-salary::before { background: #3b82f6; }
 .metric-card.card-bonus::before { background: #00BFA5; }
 .metric-card.card-lost::before { background: #ef4444; }
-.metric-card.card-ontime::before { background: #3b82f6; }
-.metric-card.card-camera::before { background: #8b5cf6; }
-.metric-card.card-attendance::before { background: #f59e0b; }
+.metric-card.card-ontime::before { background: #8b5cf6; }
 
 .metric-header {
   display: flex;

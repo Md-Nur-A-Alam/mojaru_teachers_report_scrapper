@@ -150,9 +150,6 @@ const QCParser = {
         edited_at: null,
         created_at: new Date().toISOString()
       });
-        edited_at: null,
-        created_at: new Date().toISOString()
-      });
     });
 
     return parsedData;

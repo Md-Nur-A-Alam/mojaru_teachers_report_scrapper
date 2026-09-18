@@ -13,6 +13,9 @@
   const editedRowsCountEl = document.getElementById('edited-rows-count');
 
   // KPI Elements
+  const statTotalPayout = document.getElementById('stat-total-payout');
+  const statPayoutBreakdown = document.getElementById('stat-payout-breakdown');
+  const statBaseAmount = document.getElementById('stat-base-amount');
   const statEarnedBonus = document.getElementById('stat-earned-bonus');
   const statTotalClasses = document.getElementById('stat-total-classes');
   const statLostBonus = document.getElementById('stat-lost-bonus');
@@ -23,6 +26,14 @@
   const statCameraCount = document.getElementById('stat-camera-count');
   const statHighAttendanceRate = document.getElementById('stat-high-attendance-rate');
   const statAttendance2pt = document.getElementById('stat-attendance-2pt');
+
+  // Footer Summary Breakdown
+  const footerBaseTotal = document.getElementById('footer-base-total');
+  const footerBonusTotal = document.getElementById('footer-bonus-total');
+  const footerGrandTotal = document.getElementById('footer-grand-total');
+
+  // Modal Live Payout
+  const formLivePayout = document.getElementById('form-live-payout');
 
   // Filter Elements
   const filterSearch = document.getElementById('filter-search');
@@ -260,6 +271,12 @@
         } else if (currentSortColumn === 'calculated_bonus') {
           valA = Number(a.calculated_bonus) || 0;
           valB = Number(b.calculated_bonus) || 0;
+        } else if (currentSortColumn === 'base_amount') {
+          valA = 400;
+          valB = 400;
+        } else if (currentSortColumn === 'total_payout') {
+          valA = 400 + (Number(a.calculated_bonus) || 0);
+          valB = 400 + (Number(b.calculated_bonus) || 0);
         }
 
         if (valA === undefined || valA === null) valA = '';
@@ -326,7 +343,7 @@
     if (currentFiltered.length === 0) {
       const emptyRow = document.createElement('tr');
       emptyRow.innerHTML = `
-        <td colspan="10" style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <td colspan="12" style="text-align: center; padding: 40px; color: var(--text-muted);">
           <div style="font-size: 28px; margin-bottom: 8px;">📋</div>
           <div style="font-weight: 700; font-size: 15px;">No class records match your filter</div>
           <p style="font-size: 12px; margin-top: 4px;">Try clearing filters or running the scraper for other months.</p>
@@ -345,10 +362,12 @@
         tr.classList.add(r.is_manual ? 'row-manual' : 'row-edited');
       }
 
-      // Format Bonus
+      // Format Bonus & Payout
       const calcBonus = Number(r.calculated_bonus) || 0;
       const portalBonus = r.portal_bonus || `${calcBonus} tk`;
       const isPaid = calcBonus > 0;
+      const baseAmt = 400; // Fixed 400 Tk base amount per class
+      const rowPayout = baseAmt + calcBonus;
 
       // Status Badges
       let statusBadge = '';
@@ -402,6 +421,19 @@
             ${calcBonus.toLocaleString()} Tk
           </div>
           ${discrepancyHtml}
+        </td>
+        <td>
+          <span class="badge-tag" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; font-weight: 700; border: 1px solid rgba(59, 130, 246, 0.25);">
+            400 Tk
+          </span>
+        </td>
+        <td>
+          <div style="font-weight: 800; color: #10b981; font-size: 13px;">
+            ${rowPayout.toLocaleString()} Tk
+          </div>
+          <div style="font-size: 10px; color: var(--text-muted);">
+            400 + ${calcBonus}
+          </div>
         </td>
         <td style="text-align: right;">
           <div class="row-actions" style="justify-content: flex-end;">
@@ -476,6 +508,17 @@
       if (Number(r.attendances) === 2) attendance2Count++;
     });
 
+    const baseTotal = totalCount * 400;
+    const grandPayout = baseTotal + earned;
+
+    if (statTotalPayout) statTotalPayout.textContent = `${grandPayout.toLocaleString()} Tk`;
+    if (statPayoutBreakdown) statPayoutBreakdown.textContent = `Base (${baseTotal.toLocaleString()} Tk) + Bonus (${earned.toLocaleString()} Tk)`;
+    if (statBaseAmount) statBaseAmount.textContent = `${baseTotal.toLocaleString()} Tk`;
+
+    if (footerBaseTotal) footerBaseTotal.textContent = `${baseTotal.toLocaleString()} Tk`;
+    if (footerBonusTotal) footerBonusTotal.textContent = `${earned.toLocaleString()} Tk`;
+    if (footerGrandTotal) footerGrandTotal.textContent = `${grandPayout.toLocaleString()} Tk`;
+
     statEarnedBonus.textContent = `${earned.toLocaleString()} Tk`;
     statLostBonus.textContent = `${lost.toLocaleString()} Tk`;
     statDisqualifiedClasses.textContent = `${disqualifiedCount} classes`;
@@ -483,11 +526,11 @@
     statOntimeRate.textContent = totalCount ? `${Math.round((ontimeCount / totalCount) * 100)}%` : '0%';
     statOntimeCount.textContent = ontimeCount;
 
-    statCameraRate.textContent = totalCount ? `${Math.round((cameraCount / totalCount) * 100)}%` : '0%';
-    statCameraCount.textContent = cameraCount;
+    if (statCameraRate) statCameraRate.textContent = totalCount ? `${Math.round((cameraCount / totalCount) * 100)}%` : '0%';
+    if (statCameraCount) statCameraCount.textContent = cameraCount;
 
-    statHighAttendanceRate.textContent = totalCount ? `${Math.round((attendance2Count / totalCount) * 100)}%` : '0%';
-    statAttendance2pt.textContent = attendance2Count;
+    if (statHighAttendanceRate) statHighAttendanceRate.textContent = totalCount ? `${Math.round((attendance2Count / totalCount) * 100)}%` : '0%';
+    if (statAttendance2pt) statAttendance2pt.textContent = attendance2Count;
   }
 
   // Bind All Events
@@ -690,11 +733,16 @@
 
     formLiveBonus.textContent = `${evalResult.expectedBonus} Tk`;
 
+    const modalTotalPayout = 400 + evalResult.expectedBonus;
+    if (formLivePayout) {
+      formLivePayout.textContent = `Total: ${modalTotalPayout.toLocaleString()} Tk (400 base + ${evalResult.expectedBonus} bonus)`;
+    }
+
     if (evalResult.isQualified) {
       formRuleExplanation.innerHTML = `<span style="color:#059669;">✔ Qualified for bonus: ${total} pts &times; 40 Tk = ${evalResult.expectedBonus} Tk</span>`;
     } else {
       const reasons = evalResult.reasons.join(' &bull; ');
-      formRuleExplanation.innerHTML = `<span style="color:#ef4444;">✖ Disqualified: ${reasons}</span>`;
+      formRuleExplanation.innerHTML = `<span style="color:#ef4444;">✖ Disqualified: ${reasons} (Base 400 Tk guaranteed)</span>`;
     }
   }
 
@@ -817,28 +865,36 @@
     const headers = [
       '#', 'Month', 'Course', 'Batch', 'Subject', 'Class Date', 'Time',
       'On Time', 'Camera On', 'Class Test', 'Attendances', 'Total Score',
-      'Calculated Bonus (Tk)', 'Portal Bonus', 'Is Edited', 'Is Manual', 'Notes'
+      'Base Amount (Tk)', 'Calculated Bonus (Tk)', 'Total Class Payout (Tk)',
+      'Portal Bonus', 'Is Edited', 'Is Manual', 'Notes'
     ];
 
-    const rows = currentFiltered.map((r, i) => [
-      r.row_num || (i + 1),
-      `"${r.month || ''}"`,
-      `"${(r.course_name || '').replace(/"/g, '""')}"`,
-      `"${(r.batch_code || '').replace(/"/g, '""')}"`,
-      `"${(r.subject_name || '').replace(/"/g, '""')}"`,
-      `"${r.class_date || ''}"`,
-      `"${r.time_range || r.class_time_raw || ''}"`,
-      r.on_time || 0,
-      r.camera_on || 0,
-      r.class_test || 0,
-      r.attendances || 0,
-      r.total_score || 0,
-      r.calculated_bonus || 0,
-      `"${r.portal_bonus || ''}"`,
-      r.is_edited ? 'YES' : 'NO',
-      r.is_manual ? 'YES' : 'NO',
-      `"${(r.notes || '').replace(/"/g, '""')}"`
-    ]);
+    const rows = currentFiltered.map((r, i) => {
+      const calcBonus = Number(r.calculated_bonus) || 0;
+      const baseAmt = 400;
+      const totalPayout = baseAmt + calcBonus;
+      return [
+        r.row_num || (i + 1),
+        `"${r.month || ''}"`,
+        `"${(r.course_name || '').replace(/"/g, '""')}"`,
+        `"${(r.batch_code || '').replace(/"/g, '""')}"`,
+        `"${(r.subject_name || '').replace(/"/g, '""')}"`,
+        `"${r.class_date || ''}"`,
+        `"${r.time_range || r.class_time_raw || ''}"`,
+        r.on_time || 0,
+        r.camera_on || 0,
+        r.class_test || 0,
+        r.attendances || 0,
+        r.total_score || 0,
+        baseAmt,
+        calcBonus,
+        totalPayout,
+        `"${r.portal_bonus || ''}"`,
+        r.is_edited ? 'YES' : 'NO',
+        r.is_manual ? 'YES' : 'NO',
+        `"${(r.notes || '').replace(/"/g, '""')}"`
+      ];
+    });
 
     const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

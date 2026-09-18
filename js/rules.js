@@ -3,11 +3,27 @@
  */
 
 const QCRules = {
+  // Base fixed payment per class in BDT
+  BASE_AMOUNT_PER_CLASS: 400,
+
   // Bonus per earned point in BDT
   BONUS_PER_POINT: 40,
 
   // Minimum required total score to qualify for bonus
   MIN_QUALIFYING_POINTS: 3,
+
+  /**
+   * Calculate total payout for a class: 400 Tk base + bonus
+   * @param {Object} row
+   * @param {number} [customBonus]
+   * @returns {number}
+   */
+  calculateTotalPayout(row, customBonus) {
+    const bonus = (customBonus !== undefined)
+      ? Number(customBonus)
+      : (Number(row.calculated_bonus ?? this.calculateBonus(row)) || 0);
+    return this.BASE_AMOUNT_PER_CLASS + bonus;
+  },
 
   /**
    * Calculate total points from sub-metrics

@@ -4,6 +4,8 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
   const pillCount = document.getElementById('pill-count');
+  const totalPayoutEl = document.getElementById('popup-total-payout');
+  const baseSalaryEl = document.getElementById('popup-base-salary');
   const earnedBonusEl = document.getElementById('popup-earned-bonus');
   const lostBonusEl = document.getElementById('popup-lost-bonus');
   const startMonthInput = document.getElementById('start-month');
@@ -66,6 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let earned = 0;
     let lost = 0;
+    const baseTotal = records.length * 400; // 400 Tk base amount per class
 
     records.forEach(r => {
       const calcBonus = Number(r.calculated_bonus) || 0;
@@ -79,6 +82,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
+    const totalPayout = baseTotal + earned;
+
+    if (totalPayoutEl) totalPayoutEl.textContent = `${totalPayout.toLocaleString()} Tk`;
+    if (baseSalaryEl) baseSalaryEl.textContent = `${baseTotal.toLocaleString()} Tk`;
     earnedBonusEl.textContent = `${earned.toLocaleString()} Tk`;
     lostBonusEl.textContent = `${lost.toLocaleString()} Tk`;
 
@@ -156,6 +163,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     const months = startM <= endM
       ? generateMonthsRange(startM, endM)
       : generateMonthsRange(endM, startM);
+
+    // Requirement: In every search, overall data should be cleared first
+    await QCStorage.clearAll();
+
+    // Store navigation scrape session in storage so content.js immediately picks it up
+    const session = {
+      active: true,
+      months: months,
+      currentIndex: 0,
+      collectedRecords: []
+    };
+
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      await new Promise(r => chrome.storage.local.set({ mojaru_nav_scrape: session }, r));
+    }
+
+    // Delegate to real in-page browser navigation
+    if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs && tabs[0];
+        if (activeTab && activeTab.url && activeTab.url.includes('mojaru.com')) {
+          chrome.tabs.update(activeTab.id, { url: `https://teacher.mojaru.com/teacher/qc-report?month=${months[0]}` }, () => {
+            window.close();
+          });
+          return;
+        }
+
+        // If not currently on mojaru tab, find any open mojaru tab or open one
+        chrome.tabs.query({ url: '*://teacher.mojaru.com/*' }, (mojaruTabs) => {
+          if (mojaruTabs && mojaruTabs.length > 0) {
+            const targetTab = mojaruTabs[0];
+            chrome.tabs.update(targetTab.id, { active: true, url: `https://teacher.mojaru.com/teacher/qc-report?month=${months[0]}` }, () => {
+              window.close();
+            });
+          } else {
+            chrome.tabs.create({ url: `https://teacher.mojaru.com/teacher/qc-report?month=${months[0]}` }, () => {
+              window.close();
+            });
+          }
+        });
+      });
+      return;
+    }
 
     progressBox.style.display = 'block';
     btnScrape.disabled = true;

@@ -35,6 +35,8 @@
       ],
       "js": [
         "js/rules.js",
+        "js/seedData.js",
+        "js/storage.js",
         "js/parser.js",
         "content.js"
       ],
