@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mojaru QC Scraper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="logo-wrap">
+        <div class="logo-badge">M</div>
+        <div class="logo-text">
+          <h1>Mojaru QC Tool</h1>
+          <p>Teacher Report Scraper</p>
+        </div>
+      </div>
+      <div class="stat-pill" id="badge-pill">
+        <span id="pill-count">0</span> classes
+      </div>
+    </header>
+
+    <div class="popup-content">
+      <!-- Quick Stats Snapshot -->
+      <div class="quick-stats-row">
+        <div class="stat-item">
+          <span>Earned Bonus</span>
+          <span id="popup-earned-bonus" style="color: #2dd4bf;">0 Tk</span>
+        </div>
+        <div class="stat-item">
+          <span>Lost / Disqualified</span>
+          <span id="popup-lost-bonus" style="color: #f87171;">0 Tk</span>
+        </div>
+      </div>
+
+      <!-- Quick Preset Filter -->
+      <div>
+        <div class="section-label">Quick Range Select</div>
+        <div class="quick-buttons">
+          <button class="btn-chip" id="chip-current">This Month</button>
+          <button class="btn-chip" id="chip-3mos">Past 3 Mos</button>
+          <button class="btn-chip" id="chip-6mos">Past 6 Mos</button>
+        </div>
+      </div>
+
+      <!-- Month Range Inputs -->
+      <div class="range-inputs">
+        <div class="input-box">
+          <label for="start-month">From Month</label>
+          <input type="month" id="start-month" min="2024-01">
+        </div>
+        <div class="input-box">
+          <label for="end-month">To Month</label>
+          <input type="month" id="end-month" min="2024-01">
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions-wrap">
+        <button class="btn btn-primary" id="btn-scrape">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+          </svg>
+          <span id="scrape-label">Scrape Range Now</span>
+        </button>
+
+        <button class="btn btn-secondary" id="btn-dashboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 2h7v5h-7V5zm-7 0h5v8H5V5zm0 10h5v4H5v-4zm7 4v-7h7v7h-7z"/>
+          </svg>
+          <span>Open Full Analytics Dashboard</span>
+        </button>
+      </div>
+
+      <!-- Scraping Progress -->
+      <div class="progress-container" id="progress-box">
+        <div class="progress-title" id="progress-status">Preparing scraper...</div>
+        <div class="progress-track">
+          <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="popup-footer">
+      <span>Mojaru Teacher QC v1.0</span>
+      <a href="#" id="link-clear" style="color: #94a3b8; font-size:10px;">Reset Seed Data</a>
+    </footer>
+  </div>
+
+  <script src="js/rules.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/seedData.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

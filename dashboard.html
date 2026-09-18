@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mojaru Teacher QC Analytics Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="brand-section">
+      <div class="brand-icon">M</div>
+      <div class="brand-title">
+        <h1>Mojaru Teacher QC Reports</h1>
+        <p>Analytics, Month-Range Scraper & CRUD Management</p>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <!-- Theme Toggle -->
+      <button class="btn-ui btn-ghost btn-icon-only" id="theme-toggle" title="Toggle Dark/Light Mode">
+        <svg id="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+
+      <!-- Import HTML Button -->
+      <button class="btn-ui btn-ghost" id="btn-open-import" title="Import HTML or paste table">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Import HTML</span>
+      </button>
+
+      <!-- Export Data Button -->
+      <button class="btn-ui btn-ghost" id="btn-export-csv" title="Export current filtered view to CSV">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span>Export CSV</span>
+      </button>
+
+      <!-- Add Record Modal Trigger -->
+      <button class="btn-ui btn-primary-teal" id="btn-add-record">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>+ Add Class Record</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Container -->
+  <main class="dashboard-wrapper">
+
+    <!-- KPI Summary Metrics Grid -->
+    <section class="metrics-grid">
+      <div class="metric-card card-bonus">
+        <div class="metric-header">
+          <span class="metric-title">Earned Bonus</span>
+          <div class="metric-icon" style="color: #00BFA5;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="stat-earned-bonus">0 Tk</div>
+        <div class="metric-sub">
+          <span id="stat-total-classes">0</span> total classes recorded
+        </div>
+      </div>
+
+      <div class="metric-card card-lost">
+        <div class="metric-header">
+          <span class="metric-title">Bonus Lost / Late</span>
+          <div class="metric-icon" style="color: #ef4444;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="stat-lost-bonus" style="color: #ef4444;">0 Tk</div>
+        <div class="metric-sub">
+          <span id="stat-disqualified-classes">0</span> disqualified sessions
+        </div>
+      </div>
+
+      <div class="metric-card card-ontime">
+        <div class="metric-header">
+          <span class="metric-title">On-Time Adherence</span>
+          <div class="metric-icon" style="color: #3b82f6;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="stat-ontime-rate">0%</div>
+        <div class="metric-sub">
+          <span id="stat-ontime-count">0</span> classes started on time
+        </div>
+      </div>
+
+      <div class="metric-card card-camera">
+        <div class="metric-header">
+          <span class="metric-title">Camera On Rate</span>
+          <div class="metric-icon" style="color: #8b5cf6;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 7l-7 5 7 5V7z"></path>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="stat-camera-rate">0%</div>
+        <div class="metric-sub">
+          <span id="stat-camera-count">0</span> classes camera active
+        </div>
+      </div>
+
+      <div class="metric-card card-attendance">
+        <div class="metric-header">
+          <span class="metric-title">High Attendance Rate</span>
+          <div class="metric-icon" style="color: #f59e0b;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="stat-high-attendance-rate">0%</div>
+        <div class="metric-sub">
+          <span id="stat-attendance-2pt">0</span> classes achieved &ge;85%
+        </div>
+      </div>
+    </section>
+
+    <!-- Scraper Ribbon: Run Scraper Across Any Month Range -->
+    <section class="scraper-ribbon">
+      <div class="ribbon-info">
+        <span class="ribbon-pill">Direct Scraper</span>
+        <div>
+          <strong style="font-size: 13px;">Scrape Mojaru QC Reports</strong>
+          <p style="font-size: 11px; color: var(--text-muted);">Iterate month-by-month through your active session to fetch and save all reports.</p>
+        </div>
+      </div>
+
+      <div class="ribbon-controls">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">From:</label>
+        <input type="month" id="dash-scrape-start" class="input-month-control" value="2026-09" min="2024-01">
+
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">To:</label>
+        <input type="month" id="dash-scrape-end" class="input-month-control" value="2026-09" min="2024-01">
+
+        <button class="btn-ui btn-primary-teal" id="dash-btn-run-scrape">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+          </svg>
+          <span>Run Scraper</span>
+        </button>
+
+        <button class="btn-ui btn-ghost" id="dash-btn-quick-3">Past 3 Mos</button>
+        <button class="btn-ui btn-ghost" id="dash-btn-quick-6">Past 6 Mos</button>
+      </div>
+    </section>
+
+    <!-- Scraper Progress Indicator (if active) -->
+    <div id="dash-scraper-progress" style="display: none; background: var(--bg-card); padding: 14px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-card);">
+      <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:6px;">
+        <span id="dash-progress-status" style="color: var(--mojaru-teal-dark);">Scraping in progress...</span>
+        <span id="dash-progress-percent">0%</span>
+      </div>
+      <div style="height: 8px; background: var(--bg-app); border-radius: 4px; overflow: hidden;">
+        <div id="dash-progress-fill" style="height:100%; width:0%; background: var(--mojaru-teal); transition: width 0.2s;"></div>
+      </div>
+    </div>
+
+    <!-- Main Table Card -->
+    <section class="content-card">
+      <!-- Toolbar: Search & Multi-Filters -->
+      <div class="toolbar-container">
+        <div class="toolbar-primary-row">
+          <!-- Search Bar -->
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="filter-search" class="search-input" placeholder="Search batch, subject, date, or notes...">
+          </div>
+
+          <!-- Warning Highlight Filter & Reset -->
+          <div class="toolbar-actions">
+            <!-- Filter for Warning Rows -->
+            <div class="warning-legend-badge" id="filter-edited-badge" title="Click to filter rows that were edited or manually created">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L1 21h22L12 2zm1 14h-2v-2h2v2zm0-4h-2V8h2v4z"/>
+              </svg>
+              <span>Edited / Manual Rows: <strong id="edited-rows-count">0</strong></span>
+            </div>
+
+            <button class="btn-ui btn-ghost" id="btn-reset-filters">Reset Filters</button>
+          </div>
+        </div>
+
+        <!-- Filter Dropdowns Row -->
+        <div class="filter-row">
+          <select id="filter-month" class="filter-select">
+            <option value="">All Months</option>
+          </select>
+
+          <select id="filter-batch" class="filter-select">
+            <option value="">All Batches</option>
+          </select>
+
+          <select id="filter-course" class="filter-select">
+            <option value="">All Courses</option>
+          </select>
+
+          <select id="filter-bonus-status" class="filter-select">
+            <option value="">All Bonus Status</option>
+            <option value="paid">Bonus Paid (>0 Tk)</option>
+            <option value="zero">Disqualified / 0 Tk</option>
+            <option value="discrepancy">Rule Discrepancies</option>
+          </select>
+
+          <select id="filter-mod-status" class="filter-select">
+            <option value="">All Modification Status</option>
+            <option value="edited_only">Edited Rows Only</option>
+            <option value="manual_only">Manually Created Only</option>
+            <option value="scraped_only">Original Scraped Only</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- QC Table -->
+      <div class="table-responsive">
+        <table class="qc-table" id="qc-main-table">
+          <thead>
+            <tr>
+              <th style="width: 45px;">#</th>
+              <th>Course | Batch | Subject</th>
+              <th>Class Time & Date</th>
+              <th title="1 pt if present on time (Strict bonus requirement)">On time</th>
+              <th title="1 pt if camera on">Camera</th>
+              <th title="1 pt if performance given by 11:59 PM">Class Test</th>
+              <th title="1 pt if >=75%, 2 pt if >=85%">Attendance</th>
+              <th title="Total Score (On-time + Camera + Test + Attendance)">Total</th>
+              <th title="Calculated bonus based on policy vs raw portal">Bonus (Tk)</th>
+              <th style="width: 110px; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="qc-table-body">
+            <!-- Dynamic rows rendered by dashboard.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footer / Count -->
+      <div class="table-footer">
+        <div>
+          Showing <strong id="visible-rows-count">0</strong> of <strong id="total-rows-count">0</strong> classes
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">
+          Rule: 40 Tk/pt &bull; Requires On-Time = 1 &amp; Total &ge; 3
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================
+       MODALS: CREATE / EDIT / IMPORT / CONFIRM DELETE
+       ========================================================= -->
+
+  <!-- Modal: Create / Edit Record -->
+  <div class="modal-backdrop" id="record-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="record-modal-title">
+          <span>Edit Class QC Record</span>
+        </h3>
+        <button class="modal-close" id="record-modal-close">&times;</button>
+      </div>
+
+      <form id="record-form">
+        <div class="modal-body">
+          <input type="hidden" id="modal-record-id">
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="form-month">Month (YYYY-MM)</label>
+              <input type="month" id="form-month" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="form-batch">Batch Code</label>
+              <input type="text" id="form-batch" class="form-control" placeholder="e.g. MOPP 60" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="form-course">Course Name</label>
+              <input type="text" id="form-course" class="form-control" placeholder="e.g. ম্যাথ অলিম্পিয়াড (প্রাইমারি)" required>
+            </div>
+            <div class="form-group">
+              <label for="form-subject">Subject Name</label>
+              <input type="text" id="form-subject" class="form-control" placeholder="e.g. Math Olympiad Primary" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="form-class-time">Class Date & Time Range</label>
+            <input type="text" id="form-class-time" class="form-control" placeholder="e.g. 01 Sep, 2026 06:45 PM - 08:00 PM" required>
+          </div>
+
+          <!-- Points Breakdown -->
+          <div style="background: var(--bg-app); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">
+              Point Breakdown &amp; Adherence
+            </div>
+
+            <div class="form-grid-2" style="margin-bottom: 10px;">
+              <div class="form-group">
+                <label for="form-ontime">1. Present On Time? (0 or 1)</label>
+                <select id="form-ontime" class="form-control">
+                  <option value="1">1 pt - Yes (On Time)</option>
+                  <option value="0">0 pt - No (Late / Absent - Disqualifies Bonus)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="form-camera">2. Camera On? (0 or 1)</label>
+                <select id="form-camera" class="form-control">
+                  <option value="1">1 pt - Yes (Camera On)</option>
+                  <option value="0">0 pt - No (Camera Off)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="form-classtest">3. Class Test / Perf by 11:59PM</label>
+                <select id="form-classtest" class="form-control">
+                  <option value="1">1 pt - Yes (Submitted in time)</option>
+                  <option value="0">0 pt - No</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="form-attendances">4. Student Attendance</label>
+                <select id="form-attendances" class="form-control">
+                  <option value="2">2 pts - &ge;85% Students Present</option>
+                  <option value="1">1 pt - 75% to 84% Present</option>
+                  <option value="0">0 pts - &lt;75% Present</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Bonus Calculation Box -->
+          <div class="calc-preview-card">
+            <div>
+              <div class="calc-label">Calculated Score &amp; Bonus</div>
+              <div style="font-size: 11px; color: var(--text-muted);" id="form-rule-explanation">
+                Calculating...
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div class="calc-points" id="form-live-total">0 pts</div>
+              <div class="calc-bonus" id="form-live-bonus">0 Tk</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="form-notes">Notes / Reason for Edit</label>
+            <input type="text" id="form-notes" class="form-control" placeholder="Optional notes regarding this row edit...">
+          </div>
+
+          <!-- Notice about warning highlight -->
+          <div style="font-size: 11px; color: var(--warning-dark); background: var(--warning-row-bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--warning-border);">
+            ⚠️ Note: Saving edits or creating a manual record will highlight this row in <strong>warning amber</strong> on the dashboard for instant identification.
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-ui btn-ghost" id="record-modal-cancel">Cancel</button>
+          <button type="submit" class="btn-ui btn-primary-teal" id="record-modal-save">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Import HTML / Paste Table -->
+  <div class="modal-backdrop" id="import-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>Import Mojaru QC HTML</span>
+        </h3>
+        <button class="modal-close" id="import-modal-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 12px; color: var(--text-muted);">
+          Paste raw HTML from <code>teacher.mojaru.com/teacher/qc-report</code> or upload an HTML file. All rows will be parsed and merged with your database.
+        </p>
+
+        <div class="form-group">
+          <label for="import-month-hint">Default Month (if not detected)</label>
+          <input type="month" id="import-month-hint" class="form-control" value="2026-09">
+        </div>
+
+        <div class="form-group">
+          <label for="import-html-textarea">Raw HTML Snippet</label>
+          <textarea id="import-html-textarea" class="form-control" rows="8" placeholder="Paste <table>...</table> or complete <body>...</body> from Mojaru QC Report here..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-ui btn-ghost" id="import-modal-cancel">Cancel</button>
+        <button type="button" class="btn-ui btn-primary-teal" id="btn-run-import">Parse &amp; Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/rules.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/seedData.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

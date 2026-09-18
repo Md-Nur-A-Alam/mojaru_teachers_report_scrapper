@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "Mojaru QC Report Scraper & Analytics",
+  "version": "1.0.0",
+  "description": "Automated month-range scraper and interactive CRUD analytics dashboard for Mojaru Teacher QC Reports.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Mojaru QC Scraper & Dashboard",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://teacher.mojaru.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://teacher.mojaru.com/*"
+      ],
+      "js": [
+        "js/rules.js",
+        "js/parser.js",
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dashboard.html",
+        "js/*",
+        "css/*",
+        "icons/*"
+      ],
+      "matches": [
+        "https://teacher.mojaru.com/*"
+      ]
+    }
+  ]
+}

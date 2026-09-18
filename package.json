@@ -1,0 +1,19 @@
+{
+  "name": "mojaru-qc-report-scrapper",
+  "version": "1.0.0",
+  "description": "Mojaru Teacher QC Report Scraper Chrome Extension and Analytics Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "icons": "node generate_icons.js"
+  },
+  "keywords": [
+    "mojaru",
+    "qc-report",
+    "scraper",
+    "chrome-extension",
+    "teacher-analytics"
+  ],
+  "author": "Md Nur A Alam",
+  "license": "MIT"
+}
